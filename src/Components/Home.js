@@ -22,9 +22,9 @@ function Home() {
   const [inputs , setInputs] = useState("")
   const [posts , setPosts] = useState([]);
   const [comments , setComments] = useState([]);
+  const [likes , setLikes] = useState([]);
+  const [file, setFile] = useState(null);;
 
-
-  const [file, setFile] = useState(null);
 
 
     useEffect(()=>{
@@ -33,6 +33,15 @@ function Home() {
     } , [])
 
 
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelector('#image').addEventListener('change', function(e) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.querySelector('#showImage').setAttribute('src', e.target.result);
+        }
+        reader.readAsDataURL(e.target.files[0]);
+      });
+    });
 
 
     // Posts
@@ -43,6 +52,8 @@ function Home() {
         axios.get(`http://localhost/React/the_project/Project_Backend/posts.php/`)
         .then(response => {
             setPosts(response.data);
+            getComments();
+            getLikes();
         })
     }
 
@@ -66,6 +77,7 @@ function Home() {
       }
     };
 
+
     const handlePost = (e) => {
         const value = e.target.value;
         setInputs(value)
@@ -77,11 +89,6 @@ function Home() {
         const user_id = e.target.name;
         setInputs({'comment_content': value , 'post_id': post_id , 'user_id' : user_id})
     }
-
-
-
-
-
 
 
 
@@ -196,189 +203,231 @@ function Home() {
     }
 
 
+
+
+    // Likes
+
+
+    const getLikes = () => {
+      axios.get(`http://localhost/React/the_project/Project_Backend/likes.php/`)
+      .then(response => {
+          setLikes(response.data);
+      })
+    }
+
+    const handleLikePost = (id) => {
+      const post_id = id;
+      const user_id = current_ID;
+      setInputs({'user_id': user_id , 'post_id' : post_id})
+    }
+
+    const likePost = (e) => {
+      e.preventDefault();
+      console.log(inputs)
+        axios.post('http://localhost/React/the_project/Project_Backend/likes.php/' , inputs).then(
+          getPosts()
+        )
+    }
+    const removeLikePost = (e) => {
+      e.preventDefault();
+      console.log(inputs)
+        axios.post('http://localhost/React/the_project/Project_Backend/likeDelete.php/' , inputs).then(
+          getPosts()
+        )
+    }
+
     // Return
 
   return (
     <div>
-      <a href="/group">create new group</a>
+    <a href="/logout">Logout</a><br />
+    <a href="/profile">profile</a>
 
-                  <div className="d-flex flex-start w-100">
-                    <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
-                    <form className="form-outline w-100" onSubmit={handleImagePost}>
-                      <textarea placeholder='Write something . . .' className="form-control"  id={current_ID} rows={4} style={{background: '#fff'}} onChange={handlePost}/>
-                      <input type="file"
-                      id="file"
-                      onChange={(e) => setFile(e.target.files[0])}/>
-                      <button type="submit" className="btn btn-primary btn-sm">Share</button>
-                    </form>
-                  </div>
-                { posts.map((post,index) => {
-                    return (
-                      <section style={{backgroundColor: '#eee'}}>
-        <div className="container my-5 py-5">
-          <div className="row d-flex justify-content-center">
-            <div className="col-md-12 col-lg-10 col-xl-8">
-              <div className="card">
-                <div className="card-body">
-                  <div className="d-flex flex-start align-items-center" style={{justifyContent : 'space-between'}}>
-                    <div>
-                      <div style={{display : 'flex'}}>
-                          <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={60} height={60} />
-                        <div>
-                          <h6 className="fw-bold text-primary mb-1">{post.first_name}</h6>
-                          <p className="text-muted small mb-0">{post.created_at}</p>
-                        </div>
+                <div className="d-flex flex-start w-100">
+                  <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
+                  <form className="form-outline w-100" onSubmit={handleImagePost}>
+                    <textarea placeholder='Write something . . .' className="form-control"  id={current_ID} rows={4} style={{background: '#fff'}} onChange={handlePost}/>
+                    <input type="file"
+                    id="file"
+                    onChange={(e) => setFile(e.target.files[0])}/>
+                    <button type="submit" className="btn btn-primary btn-sm">Share</button>
+                  </form>
+                </div>
+              { posts.map((post,index_post) => {
+                var flagLike = false;
+                  return (
+    <section style={{backgroundColor: '#eee'}} key={index_post}>
+      <div className="container my-5 py-5">
+        <div className="row d-flex justify-content-center">
+          <div className="col-md-12 col-lg-10 col-xl-8">
+            <div className="card">
+              <div className="card-body">
+                <div className="d-flex flex-start align-items-center" style={{justifyContent : 'space-between'}}>
+                  <div>
+                    <div style={{display : 'flex'}}>
+                        <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={60} height={60} />
+                      <div>
+                        <h6 className="fw-bold text-primary mb-1">{post.first_name}</h6>
+                        <p className="text-muted small mb-0">{post.created_at}</p>
                       </div>
                     </div>
-                    {(post.user_id == current_ID) ?
-                    <div>
-                      <button onClick={() => {deletePost(post.post_id)}}>Delete Your Post</button>
-                      <button id={`editPostBTN${post.post_id}`} onClick={() => {editPost(post.post_id)}}><FaEdit /></button>
-                    </div>
-                    : null }
                   </div>
-                  {(post.post_image != 'a') ? 
-
-
-
-
-
-
+                  {(post.user_id == current_ID) ?
                   <div>
-                      <p id={`post${post.post_id}`} className="mt-3 mb-4 pb-2">{post.content}</p>
-                      
-
-                      <form id={`editPostForm${post.post_id}`} action="" style={{display : 'none'}} onSubmit={handleEditPostSubmit}>
-                          <textarea 
-                          style={{width: '50vw'}} 
-                          type="text" 
-                          defaultValue={post.content} 
-                          id={`editPostInput${post.post_id}`} onChange={() => handleEditPost(post.post_id)}/>
-
-                          <br />
-
-                          <input 
-                          type="file"
-                          id="file"
-                          onChange={(e) => setFile(e.target.files[0])}/>
-
-                          <button type='submit'>Update</button>
-                          <button style={{background : 'red' , color : 'white'}} onClick={()=>{canclePostEdit(post.post_id)}} type='button'>Cancle</button>
-                      </form>
-
-                      <img id={`imgPost${post.post_id}`} width={'700vw'} height={'500vh'} src={require(`./images/${post.post_image}`)} alt='' />
+                    <button onClick={() => {deletePost(post.post_id)}}>Delete Your Post</button>
+                    <button id={`editPostBTN${post.post_id}`} onClick={() => {editPost(post.post_id)}}><FaEdit /></button>
                   </div>
-
-
-
-                  : 
-                  
-                  <div>
-                  
-                  <p id={`post${post.post_id}`} className="mt-3 mb-4 pb-2">
-                  {post.content}
-                </p> 
-                
-                <form id={`editPostForm${post.post_id}`} action="" style={{display : 'none'}} onSubmit={handleEditPostSubmit}>
-
-                    <textarea 
-                      style={{width: '50vw'}} 
-                      type="text" 
-                      defaultValue={post.content} 
-                      id={`editPostInput${post.post_id}`} 
-                      onChange={() => handleEditPost(post.post_id)}/>
-
-                    <input 
-                      type="file"
-                      id="file"
-                      onChange={(e) => setFile(e.target.files[0])}/>
-
-                    <br />
-
-                    <button type='submit'>Update</button>
-                    <button style={{background : 'red' , color : 'white'}} onClick={()=>{canclePostEdit(post.post_id)}}  type='button'>Cancle</button>
-
-                </form>
-                
-
+                  : null }
                 </div>
-                }
-                  <div className="small d-flex justify-content-start">
-                    <a href="#!" className="d-flex align-items-center me-3">
-                      <i className="far fa-thumbs-up me-2" />
-                      <p className="mb-0">Like</p>
-                    </a>
-                    <a onClick={()=>foucsOnComment(post.post_id)} href="#!" className="d-flex align-items-center me-3">
-                      <i className="far fa-comment-dots me-2" />
-                      <p className="mb-0">Comment</p>
-                    </a>
+
+                
+                {(post.post_image != 'a') ? 
+
+                <div>
+                    <p id={`post${post.post_id}`} className="mt-3 mb-4 pb-2">{post.content}</p>
+
+                    <form id={`editPostForm${post.post_id}`} action="" style={{display : 'none'}} onSubmit={handleEditPostSubmit}>
+                        <textarea 
+                        style={{width: '50vw'}} 
+                        type="text" 
+                        defaultValue={post.content} 
+                        id={`editPostInput${post.post_id}`} onChange={() => handleEditPost(post.post_id)}/>
+
+                        <br />
+
+                        <input 
+                        type="file"
+                        id="file"
+                        onChange={(e) => setFile(e.target.files[0])}/>
+
+                        <button type='submit'>Update</button>
+                        <button style={{background : 'red' , color : 'white'}} onClick={()=>{canclePostEdit(post.post_id)}} type='button'>Cancle</button>
+                    </form>
+
+                    <img id={`imgPost${post.post_id}`} width={'700vw'} height={'500vh'} src={require(`./images/${post.post_image}`)} alt='' />
+                </div>
+
+                : 
+                
+                <div>
+                
+                <p id={`post${post.post_id}`} className="mt-3 mb-4 pb-2">
+                {post.content}
+              </p> 
+              
+              <form id={`editPostForm${post.post_id}`} action="" style={{display : 'none'}} onSubmit={handleEditPostSubmit}>
+
+                  <textarea 
+                    style={{width: '50vw'}} 
+                    type="text" 
+                    defaultValue={post.content} 
+                    id={`editPostInput${post.post_id}`} 
+                    onChange={() => handleEditPost(post.post_id)}/>
+
+                  <input 
+                    type="file"
+                    id="file"
+                    onChange={(e) => setFile(e.target.files[0])}/>
+
+                  <br />
+
+                  <button type='submit'>Update</button>
+                  <button style={{background : 'red' , color : 'white'}} onClick={()=>{canclePostEdit(post.post_id)}}  type='button'>Cancle</button>
+
+              </form>
+              
+
+              </div>
+              }
+                <div className="small d-flex justify-content-start">
+                  {
+                  likes.map((like , index_like) => {
+                    if (like.user_id == current_ID && like.post_id == post.post_id){
+                      return ( flagLike = true )
+                    }})}
+
+                    {( flagLike == true ) ?
+
+                        <div>
+                            <form action="" onSubmit={removeLikePost}>
+                              <button type='submit' style={{background : 'none' , border : 'none' , color : '#0d6efd' , textDecoration : 'underLine' }} onClick={()=>handleLikePost(post.post_id)}  href="#!" className="d-flex align-items-center me-3">
+                                <i className="far fa-thumbs-up me-2" />
+                                <p className="mb-0" style={{color : 'blue' , fontWeight : 'bold'}}>Liked</p>
+                              </button>
+                            </form>
+                        </div> 
+                    :
+                            <form action="" onSubmit={likePost}>
+                                <button type='submit' style={{background : 'none' , border : 'none' , color : '#0d6efd' , textDecoration : 'underLine' }} onClick={()=>handleLikePost(post.post_id)}  href="#!" className="d-flex align-items-center me-3">
+                                  <i className="far fa-thumbs-up me-2" />
+                                  <p className="mb-0">Like</p>
+                                </button>
+                            </form>
+                
+                    }
+                   
+                  <a onClick={()=>foucsOnComment(post.post_id)} href="#!" className="d-flex align-items-center me-3">
+                    <i className="far fa-comment-dots me-2" />
+                    <p className="mb-0">Comment</p>
+                  </a>
+                </div>
+              </div>
+              <div className="card-footer py-3 border-0" style={{backgroundColor: '#f8f9fa'}}>
+                <div className="w-100">
+                { comments.map((comment,index_comment) => {
+                  if (comment.post_id == post.post_id){
+                  return (
+                  <div key={index_comment}>
+                      <div style={{display : 'flex' , justifyContent : 'space-between'}}>
+                        <div>
+                          <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
+                          <span>{comment.first_name}</span>
+                        </div>
+                        {(comment.user_id == current_ID) ? 
+                        <div>
+                            <button onClick={() => {deleteComment(comment.comment_id)}}>Remove comment</button>
+                            <button id={`editCommentBTN${comment.comment_id}`} onClick={() => {editComment(comment.comment_id)}}><FaEdit /></button>
+                        </div> : (post.user_id == current_ID) ?
+                        <div>
+                            <button onClick={() => {deleteComment(comment.comment_id)}}>Remove comment</button>
+                        </div>
+                        : null }
+                      </div>
+                      <br />
+                      <div className="form-outline w-100">
+
+                          <p id={`comment${comment.comment_id}`}>{comment.comment_content}</p>
+                          <form id={`editCommentForm${comment.comment_id}`} action="" style={{display : 'none'}} onSubmit={handleEditCommentSubmit}>
+                            <input type="text" defaultValue={comment.comment_content} id={`editCommentInput${comment.comment_id}`} onChange={() => handleEditComment(comment.comment_id)}/>
+                            <button type='submit'>Update</button>
+                            <button style={{background : 'red' , color : 'white'}} onClick={()=>{cancleCommentEdit(comment.comment_id)}}  type='button'>Cancle</button>
+                          </form>
+
+                          <p>{comment.comment_created_at}</p>
+                      </div>
+                      <hr />
                   </div>
+                  )}})}
                 </div>
                 <div className="card-footer py-3 border-0" style={{backgroundColor: '#f8f9fa'}}>
-                  <div className="w-100">
-                  { comments.map((comment,index) => {
-                    if (comment.post_id == post.post_id){
-                    return (
-                    <div>
-                        <div style={{display : 'flex' , justifyContent : 'space-between'}}>
-                          <div>
-                            <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
-                            <span>{comment.first_name}</span>
-                          </div>
-                          {(comment.user_id == current_ID) ? 
-                          <div>
-                              <button onClick={() => {deleteComment(comment.comment_id)}}>Remove comment</button>
-                              <button id={`editCommentBTN${comment.comment_id}`} onClick={() => {editComment(comment.comment_id)}}><FaEdit /></button>
-                          </div> : (post.user_id == current_ID) ?
-                          <div>
-                              <button onClick={() => {deleteComment(comment.comment_id)}}>Remove comment</button>
-                          </div>
-                          : null }
-                        </div>
-                        <br />
-                        <div className="form-outline w-100">
-
-
-
-
-
-                            <p id={`comment${comment.comment_id}`}>{comment.comment_content}</p>
-                            <form id={`editCommentForm${comment.comment_id}`} action="" style={{display : 'none'}} onSubmit={handleEditCommentSubmit}>
-                              <input type="text" defaultValue={comment.comment_content} id={`editCommentInput${comment.comment_id}`} onChange={() => handleEditComment(comment.comment_id)}/>
-                              <button type='submit'>Update</button>
-                              <button style={{background : 'red' , color : 'white'}} onClick={()=>{cancleCommentEdit(comment.comment_id)}}  type='button'>Cancle</button>
-                            </form>
-
-
-
-
-
-
-                            <p>{comment.comment_created_at}</p>
-                        </div>
-                        <hr />
-                    </div>
-                    )}})}
-                  </div>
-                  <div className="card-footer py-3 border-0" style={{backgroundColor: '#f8f9fa'}}>
-                  <div className="d-flex flex-start w-100">
-                    <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
-                    <form className="form-outline w-100" onSubmit={handleCreateComment}>
-                      <textarea className="form-control" id={post.post_id} name={current_ID} rows={4} style={{background: '#fff'}} onChange={handleChange}/>
-                      <button type="submit" className="btn btn-primary btn-sm">Post comment</button>
-                    </form>
-                  </div>
-                  </div>
-                  <div className="float-end mt-2 pt-1">
-                  </div>
+                <div className="d-flex flex-start w-100">
+                  <img className="rounded-circle shadow-1-strong me-3" src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(19).webp" alt="avatar" width={40} height={40} />
+                  <form className="form-outline w-100" onSubmit={handleCreateComment}>
+                    <textarea className="form-control" id={post.post_id} name={current_ID} rows={4} style={{background: '#fff'}} onChange={handleChange}/>
+                    <button type="submit" className="btn btn-primary btn-sm">Post comment</button>
+                  </form>
+                </div>
+                </div>
+                <div className="float-end mt-2 pt-1">
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
-                )})}
-    </div>
+      </div>
+    </section>
+              )})}
+  </div>
   )
 }
 
